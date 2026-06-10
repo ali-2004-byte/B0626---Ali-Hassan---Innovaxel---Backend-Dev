@@ -48,7 +48,8 @@ def list_events_service(upcoming_only: bool, sort_by_date: bool, conn: sqlite3.C
 def register_user_service(request: RegisterUserRequest, conn: sqlite3.Connection):
     try:
         conn.execute("BEGIN EXCLUSIVE")
-
+        # Lock the database so seat availability check and registration
+        # insertion occur atomically, preventing overbooking.
         event = get_event_by_id(conn, request.event_id)
         if not event:
             raise HTTPException(
@@ -105,7 +106,8 @@ def cancel_registration_service(event_id: int, user_name: str, conn: sqlite3.Con
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No active registration found"
         )
-
+    # Seat availability updates automatically because
+    # available seats are derived from active registrations.
     cancel_registration(conn, registration["id"])
     conn.commit()
 

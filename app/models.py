@@ -8,6 +8,7 @@ class CreateEventRequest(BaseModel):
 
     @field_validator('name', mode='before')
     def name_must_not_be_blank(cls, v):
+        # Reject values containing only whitespace.
         if isinstance(v, str):
             v = v.strip()
         if not v:
@@ -16,6 +17,7 @@ class CreateEventRequest(BaseModel):
 
     @field_validator('event_date')
     def date_must_be_future(cls, v):
+        # Prevent creation of events in the past.
         if v <= datetime.now(timezone.utc):
             raise ValueError('event_date must be in the future')
         return v

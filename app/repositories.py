@@ -31,12 +31,15 @@ def list_events(
     upcoming_only: bool = False,
     sort_by_date: bool = False
 ):
+    
     query = """
     SELECT
         e.id,
         e.name,
         e.event_date,
         e.total_seats,
+        -- Seat availability is derived from active registrations
+        -- rather than stored to avoid synchronization issues.
         COUNT(CASE WHEN r.status = 'active' THEN 1 END) AS total_registrations,
         e.total_seats - COUNT(CASE WHEN r.status = 'active' THEN 1 END) AS available_seats
     FROM events e
@@ -102,6 +105,7 @@ def get_registration_by_id(conn: sqlite3.Connection, registration_id: int):
 
 def find_active_registration(conn: sqlite3.Connection, event_id: int, user_name: str):
     cursor = conn.cursor()
+    # Only active registrations participate in duplicate-check and cancellation workflows.
     cursor.execute(
         """
         SELECT id
@@ -117,6 +121,7 @@ def find_active_registration(conn: sqlite3.Connection, event_id: int, user_name:
 
 def cancel_registration(conn: sqlite3.Connection, registration_id: int) -> None:
     cursor = conn.cursor()
+    # Soft delete by marking the registration as cancelled so registration history is preserved.
     cursor.execute(
         """
         UPDATE registrations
